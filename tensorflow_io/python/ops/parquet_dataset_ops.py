@@ -80,7 +80,7 @@ class ParquetIODataset(tf.data.Dataset):
             self._dtypes = dtypes
 
             def dataset_f(component, shape, dtype):
-                step = 4096
+                step = 320000
                 indices_start = tf.data.Dataset.range(0, shape[0], step)
                 indices_stop = indices_start.skip(1).concatenate(
                     tf.data.Dataset.from_tensor_slices(
@@ -102,7 +102,7 @@ class ParquetIODataset(tf.data.Dataset):
                     )
 
                 dataset = dataset.map(f)
-                dataset = dataset.unbatch()
+                # dataset = dataset.unbatch()
                 return dataset
 
             entries = list(zip(components, shapes, dtypes))

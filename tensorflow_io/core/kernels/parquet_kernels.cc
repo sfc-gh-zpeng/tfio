@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "arrow/io/api.h"
 #include "parquet/api/reader.h"
 #include "parquet/windows_compatibility.h"
 #include "tensorflow/core/framework/resource_mgr.h"
@@ -42,10 +43,17 @@ class ParquetReadableResource : public ResourceBase {
     TF_RETURN_IF_ERROR(file_->GetFileSize(&file_size_));
 
     parquet_file_.reset(new ArrowRandomAccessFile(file_.get(), file_size_));
-
-    parquet_file_.reset(new ArrowRandomAccessFile(file_.get(), file_size_));
-    parquet_reader_ = parquet::ParquetFileReader::Open(parquet_file_);
+    auto reader_properties = parquet::default_reader_properties();
+    parquet_reader_ = parquet::ParquetFileReader::Open(parquet_file_, reader_properties);
     parquet_metadata_ = parquet_reader_->metadata();
+    std::vector<int> all_row_groups(parquet_metadata_->num_row_groups());
+    std::iota(all_row_groups.begin(), all_row_groups.end(), 0);
+    std::vector<int> all_columns(parquet_metadata_->num_columns());
+    std::iota(all_columns.begin(), all_columns.end(), 0);
+    arrow::io::CacheOptions cache_options;
+    cache_options.hole_size_limit = 4 << 20;
+    cache_options.range_size_limit = 64 << 20;
+    parquet_reader_->PreBuffer(all_row_groups, all_columns, arrow::io::IOContext(), cache_options);
 
     shapes_.clear();
     dtypes_.clear();
@@ -125,7 +133,7 @@ class ParquetReadableResource : public ResourceBase {
               const TensorShape& shape,
               std::function<Status(const TensorShape& shape, Tensor** value)>
                   allocate_func) {
-    mutex_lock l(mu_);
+    // mutex_lock l(mu_);
 
     if (columns_index_.find(component) == columns_index_.end()) {
       return errors::InvalidArgument("component ", component, " is invalid");

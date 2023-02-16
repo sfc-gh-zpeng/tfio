@@ -56,10 +56,11 @@ class IOResourceOpKernel : public OpKernel {
     {
       mutex_lock l(mu_);
       // TODO: LRU cache with adjustable size?
-      if (resource_created_ != "" && resource_created_ != shared) {
-        entries_.erase(container_ + "/" + resource_created_);
-        resource_created_ = "";
-      }
+      // if (resource_created_ != "" && resource_created_ != shared) {
+	//LOG(WARNING) << "erasing " <<  resource_created_ << " while creating " << shared;
+        //entries_.erase(container_ + "/" + resource_created_);
+        //resource_created_ = "";
+      //}
 
       auto lookup = entries_.find(container_ + "/" + shared);
       if (lookup == entries_.end()) {
